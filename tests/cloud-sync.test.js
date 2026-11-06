@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { synchronize, validPublicKey } = require('../src/cloud-sync');
+const { synchronize, validPublicKey, makeClient } = require('../src/cloud-sync');
 const snapshot = code => ({ format:'java-ai-learning-backup', version:1, state:{ exercises:{ x:{code} } } });
 function clientFor(initial) {
   let row = initial;
@@ -12,6 +12,8 @@ function clientFor(initial) {
 (async () => {
   assert(validPublicKey('sb_publishable_example'));
   assert(!validPublicKey('sb_secret_example'));
+  assert.throws(() => makeClient('http://example.supabase.co', 'sb_publishable_example'));
+  assert.throws(() => makeClient('https://example.supabase.co', 'sb_secret_example'));
   let current = snapshot('local');
   const client = clientFor({revision:1,snapshot:snapshot('remote')});
   const capture = () => JSON.parse(JSON.stringify(current));
@@ -32,5 +34,20 @@ function clientFor(initial) {
   const editing = await synchronize(waiting, 'u1', snapshot('base'), () => snapshot('base'), () => { throw new Error('must not apply while editing'); }, {}, () => false);
   assert.strictEqual(editing.status, 'editing');
   assert.strictEqual(waiting.row.revision, 3);
+  const remoteChoice = clientFor({revision:1,snapshot:snapshot('remote')});
+  let chosen = snapshot('local'); chosen.state.exercises.x.passed = true;
+  const resolved = await synchronize(remoteChoice, 'u1', snapshot('base'), () => JSON.parse(JSON.stringify(chosen)), v => {chosen = v}, {x:{local:'local',remote:'remote',choice:'remote'}});
+  assert.strictEqual(resolved.status, 'synced');
+  assert.strictEqual(chosen.state.exercises.x.code, 'remote');
+  assert.strictEqual(chosen.state.exercises.x.passed, false);
+  const shared = clientFor({revision:5,snapshot:snapshot('original')});
+  const base = snapshot('original'); let deviceA = snapshot('edited on A'), deviceB = snapshot('edited on B');
+  const savedA = await synchronize(shared, 'u1', base, () => JSON.parse(JSON.stringify(deviceA)), v => {deviceA = v}, {});
+  assert.strictEqual(savedA.status, 'synced');
+  const collidedB = await synchronize(shared, 'u1', base, () => JSON.parse(JSON.stringify(deviceB)), v => {deviceB = v}, {});
+  assert.strictEqual(collidedB.status, 'conflict');
+  assert.strictEqual(collidedB.conflicts[0].remote, 'edited on A');
+  assert.strictEqual(deviceB.state.exercises.x.code, 'edited on B');
+  assert.strictEqual(shared.row.snapshot.state.exercises.x.code, 'edited on A');
   console.log('OK: cloud CAS and conflict safety');
 })().catch(e => { console.error(e); process.exitCode=1; });
