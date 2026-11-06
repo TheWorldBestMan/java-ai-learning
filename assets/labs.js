@@ -45,7 +45,7 @@
   }
 
   function writeJSON(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); window.dispatchEvent(new Event('course-state-change')); } catch (e) { /* ignore */ }
   }
 
   function trackLab(id) {

@@ -134,7 +134,7 @@
     state.updatedAt = Date.now();
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
-      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(KEY, JSON.stringify(state)); window.dispatchEvent(new Event('course-state-change')); } catch (e) { /* ignore */ }
     }, 120);
   }
 
@@ -201,7 +201,7 @@
     if (parts[0] === 'chapter') return { name: 'chapter', id: parts[1] || '', section: parts[2] || '' };
     if (parts[0] === 'lab') return { name: 'lab', id: parts[1] || 'token' };
     if (parts[0] === 'project') return { name: 'project', id: parts[1] || '' };
-    if (['home', 'roadmap', 'labs', 'projects', 'interview', 'cheatsheet', 'review', 'backup', 'diagnostics'].indexOf(parts[0]) >= 0) {
+    if (['home', 'roadmap', 'labs', 'projects', 'interview', 'cheatsheet', 'review', 'backup', 'diagnostics', 'cloud'].indexOf(parts[0]) >= 0) {
       return { name: parts[0] };
     }
     return { name: 'notfound', raw: raw };
@@ -251,6 +251,7 @@
     html.push(navItem('#/roadmap', '⌁', '学习路线', route.name === 'roadmap'));
     html.push(navItem('#/review', '↻', '错题复习', route.name === 'review'));
     html.push(navItem('#/backup', '⇩', '进度备份', route.name === 'backup'));
+    html.push(navItem('#/cloud', '☁', '云同步', route.name === 'cloud'));
     html.push(navItem('#/diagnostics', '⚙', '环境诊断', route.name === 'diagnostics'));
     var favorites = CHAPTERS.filter(function (ch) { return !!state.bookmarks[ch.id]; });
     if (favorites.length) { html.push('<div class="nav-section">我的收藏</div>'); favorites.forEach(function (ch) { html.push(navItem('#/chapter/' + ch.id, '★', ch.title, false)); }); }
@@ -294,6 +295,7 @@
     if (route.name === 'home') return '学习总览';
     if (route.name === 'review') return '错题复习';
     if (route.name === 'backup') return '进度备份';
+    if (route.name === 'cloud') return '云同步';
     if (route.name === 'diagnostics') return '环境诊断';
     if (route.name === 'roadmap') return '学习路线';
     if (route.name === 'labs') return '交互实验室';
@@ -966,9 +968,10 @@
     rec.checks = results;
     var all = results.every(function (r) { return r.pass; });
     if (all) {
-      if (!rec.passed) {
+      if (!rec.passed && !rec.rewarded) {
         state.xp += 30;
         toast('练习通过 +30 XP', 'ok');
+        rec.rewarded = true;
       }
       rec.passed = true;
     } else {
@@ -1184,7 +1187,7 @@
       count++;
       html.push('<div class="card mt-2"><div class="row between"><b>' + esc(ch.title) + '</b><span class="tag">' + (item.reviewed ? '已复习' : '待复习') + '</span></div><p>' + esc(q.q) + '</p>');
       q.options.forEach(function (opt, j) { html.push('<button class="btn sm" type="button" data-review-ch="' + esc(ch.id) + '" data-review-q="' + i + '" data-review-opt="' + j + '">' + esc(opt) + '</button> '); });
-      html.push('<p class="tiny muted">' + (item.reviewed ? esc(q.explain) : '选择答案后查看解释。') + '</p><a href="#/chapter/' + encodeURIComponent(ch.id) + '">回到对应章节 →</a></div>');
+      html.push('<p class="tiny muted">' + (item.reviewed || item.attempted ? esc(q.explain) : '选择答案后查看解释。') + '</p><a href="#/chapter/' + encodeURIComponent(ch.id) + '">回到对应章节 →</a></div>');
     }); });
     if (!count) html.push('<div class="card mt-2">还没有错题。做章节测验时答错的题目会自动出现在这里。</div>');
     return html.join('');
@@ -1192,6 +1195,33 @@
   function renderDiagnostics() {
     return '<div class="card"><h1>本机环境诊断</h1><p>只读取本机 JDK、Maven、Git、Docker 的版本和引擎状态，不安装软件或修改配置。请从本机的 localhost 地址使用。</p><button type="button" class="btn primary" data-diagnose>开始检测</button><div id="diagnosticResults" class="mt-2" aria-live="polite"></div><h2>手动检查</h2><p>直接打开文件或从手机访问时，使用电脑 PowerShell 运行：</p>' + codeBlock('powershell', '环境检查命令', 'java -version\njavac -version\nmvn -v\ngit --version\ndocker version\n$env:JAVA_HOME') + '<p class="muted">Maven 找不到时可进入示例目录使用 .\\mvnw.cmd；Docker 只有 Client 而没有 Server 时请启动 Docker Desktop 并等待引擎就绪。JAVA_HOME 与 java 可能指向不同版本，以 mvn -v 为准。</p></div>';
   }
+
+  function renderCloud() {
+    return '<div class="card"><h1>云同步（待项目验证）</h1><p>同步功能已进行本地模拟测试，尚未连接真实 Supabase 项目。正式使用前请先导出备份。通过邮箱登录后可同步学习进度和草稿；冲突时需要你选择。请勿输入 secret 或 service_role 密钥。</p>' +
+      '<p id="cloudStatus" aria-live="polite">正在检查同步状态…</p>' +
+      '<label for="cloudUrl">Supabase 项目地址</label><input id="cloudUrl" type="url" placeholder="https://项目ID.supabase.co" class="cloud-input">' +
+      '<label for="cloudKey">Publishable 或 anon 公开密钥</label><input id="cloudKey" type="text" class="cloud-input">' +
+      '<button class="btn sm" type="button" data-cloud-config>保存项目配置</button>' +
+      '<p><label for="cloudEmail">邮箱</label> <input id="cloudEmail" type="email" autocomplete="email"> <button class="btn sm" type="button" data-cloud-send>发送验证码</button></p>' +
+      '<p><label for="cloudOtp">邮箱验证码</label> <input id="cloudOtp" inputmode="numeric" autocomplete="one-time-code"> <button class="btn primary sm" type="button" data-cloud-verify>验证并登录</button></p>' +
+      '<button class="btn sm" type="button" data-cloud-now>立即同步</button> <button class="btn sm" type="button" data-cloud-logout>退出登录</button>' +
+      '<div id="cloudConflicts" class="mt-2"></div><p class="tiny muted">首次使用需创建 Supabase 项目、配置邮箱验证码并应用数据库权限；离线或未配置时，原有本地学习和备份仍可使用。</p></div>';
+  }
+  window.CourseBridge = {
+    snapshot: function () { var data = JSON.parse(JSON.stringify(backupData())); delete data.exportedAt; data.state.updatedAt = 0; return data; },
+    canApply: function () { return !(document.activeElement && document.activeElement.id === 'exEditor'); },
+    apply: function (data) {
+      window.ProgressTools.validate(data);
+      var next = normalizeState(data.state), writes = {}, before = {};
+      writes[KEY] = JSON.stringify(next);
+      LAB_STORAGE_KEYS.forEach(function (key) { if (data.labs && data.labs[key]) writes[key] = JSON.stringify(data.labs[key]); });
+      Object.keys(writes).forEach(function (key) { before[key] = localStorage.getItem(key); });
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      try { Object.keys(writes).forEach(function (key) { localStorage.setItem(key, writes[key]); }); }
+      catch (err) { Object.keys(before).forEach(function (key) { if (before[key] === null) localStorage.removeItem(key); else localStorage.setItem(key, before[key]); }); throw err; }
+      state = next; seedReview(); render();
+    }
+  };
 
   function renderNotFound() {
     return '<div class="card center" style="padding:50px 20px"><div class="big-number">404</div><h2 class="mt-1">这页不存在</h2><p class="muted">可能是链接拼错了，或者内容还没写到这里。</p><a class="btn primary" href="#/home">回学习总览</a></div>';
@@ -1226,9 +1256,11 @@
     else if (route.name === 'backup') html = renderBackup();
     else if (route.name === 'review') html = renderReview();
     else if (route.name === 'diagnostics') html = renderDiagnostics();
+    else if (route.name === 'cloud') html = renderCloud();
     else html = renderNotFound();
 
     view.innerHTML = '<div class="fade-up">' + html + '</div>' + footer() + '<button class="back-top btn sm" type="button" data-back-top aria-label="返回顶部">↑ 顶部</button>';
+    window.dispatchEvent(new Event('course-page-rendered'));
     closeSidebar();
 
     if (route.name === 'chapter') {
@@ -1352,7 +1384,7 @@
           var question = reviewChapter && reviewChapter.quiz[reviewIndex];
           if (question) {
             var reviewKey = reviewChapter.id + ':' + reviewIndex;
-            state.review[reviewKey] = { reviewed: Number(reviewButton.getAttribute('data-review-opt')) === question.answer };
+            state.review[reviewKey] = { reviewed: Number(reviewButton.getAttribute('data-review-opt')) === question.answer, attempted: true };
             save(); render(); toast(state.review[reviewKey].reviewed ? '答对了，已标记复习' : '再试试，回章节查看讲解', state.review[reviewKey].reviewed ? 'ok' : 'warn');
           }
           return;
@@ -1444,6 +1476,14 @@
           var ch = chapterById(view.getAttribute('data-chapter'));
           if (!ch) return;
           var rec = state.exercises[ch.id] || {};
+          if (rec.code !== e.target.value && rec.passed) {
+            rec.rewarded = true;
+            rec.passed = false;
+            rec.checks = [];
+            var tag = $('#exTag'); if (tag) { tag.className = 'tag'; tag.textContent = '待重新检查'; }
+            var results = $('#exChecks'); if (results) results.innerHTML = '';
+            refreshAside(ch);
+          }
           rec.code = e.target.value;
           state.exercises[ch.id] = rec;
           save();

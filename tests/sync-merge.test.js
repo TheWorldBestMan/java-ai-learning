@@ -1,0 +1,13 @@
+const assert = require('assert');
+const { mergeSnapshots } = require('../src/sync-merge');
+const snap = code => ({state:{exercises:{x:{code}},chapters:{},bookmarks:{}}});
+let result = mergeSnapshots(snap('base'), snap('local'), snap('remote'));
+assert.strictEqual(result.conflicts.length, 1);
+assert.strictEqual(result.value.state.exercises.x.code, 'local');
+assert.strictEqual(result.conflicts[0].remote, 'remote');
+result = mergeSnapshots(snap('base'), snap('base'), snap('remote'));
+assert.strictEqual(result.conflicts.length, 0);
+assert.strictEqual(result.value.state.exercises.x.code, 'remote');
+result = mergeSnapshots(undefined, {state:{chapters:{a:{done:true}}}}, {state:{chapters:{b:{done:true}}}});
+assert(result.value.state.chapters.a.done && result.value.state.chapters.b.done);
+console.log('OK: three-way sync and draft conflicts');

@@ -173,13 +173,21 @@ async function main() {
   await evalJs('document.querySelector("[data-bookmark]").click()');
   check('chapter bookmark persists', await evalJs('document.querySelector("[data-bookmark]").getAttribute("aria-pressed") === "true"'));
   await evalJs('document.querySelector(".chapter-toc a").click()');
-  await sleep(500);
+  await sleep(800);
   check('chapter heading route resolves', await evalJs('location.hash.includes("/s") && !!document.querySelector(".lesson-h2[id]")'));
+  check('chapter reading position saved', await evalJs('!!JSON.parse(localStorage.getItem("java-ai-lab.progress.v1")).reading["spring-boot"]'));
+  await goto('#/home');
+  await goto('#/chapter/spring-boot');
+  check('chapter reading position restored', await evalJs('(function(){var p=JSON.parse(localStorage.getItem("java-ai-lab.progress.v1")).reading["spring-boot"];var h=document.getElementById("section-"+p);return !!h && Math.abs(h.getBoundingClientRect().top)<160})()'));
   check('spring example download link', await evalJs('Array.from(document.querySelectorAll("a[download]")).some(function(a){return a.getAttribute("href") === "examples/downloads/spring-greeting.zip";})'));
   check('spring example download available', await evalJs('fetch("examples/downloads/spring-greeting.zip").then(function(r){return r.ok && r.headers.get("content-length") > 1000;})'));
   check('exercise limitation is visible', await evalJs('document.body.innerText.includes("不会编译、运行代码或验证行为")'));
   await goto('#/chapter/env');
   check('saved exercise and completion survive navigation', await evalJs('(function(){var s=JSON.parse(localStorage.getItem("java-ai-lab.progress.v1"));return !!s.chapters.env.done && document.querySelector("#exEditor").value === s.exercises.env.code;})()'));
+  await evalJs('(function(){var e=document.querySelector("#exEditor");e.value += "\\n// edit";e.dispatchEvent(new Event("input",{bubbles:true}))})()');
+  check('editing invalidates old exercise check', await evalJs('document.querySelector("#exTag").textContent.includes("待重新检查") && document.querySelectorAll("#exChecks .pass").length===0'));
+  await evalJs('(function(){var e=document.querySelector("#exEditor");e.value=window.CHAPTERS.find(function(c){return c.id==="env"}).exercise.solution;e.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("[data-ex-check]").click()})()');
+  check('exercise can be rechecked', await evalJs('document.querySelectorAll("#exChecks .pass").length===5'));
   await goto('#/chapter/spring-ai');
   check('spring ai walkthrough and version note', await evalJs('document.body.innerText.includes("从已有 Spring 项目接到一次模型响应") && document.body.innerText.includes("Chat 与 Embedding 可以是不同服务")'));
   await goto('#/chapter/rag-eval');
@@ -208,6 +216,11 @@ async function main() {
   check('invalid backup does not change state', await evalJs('document.querySelector("#backupPreview").textContent.includes("当前数据未改变") && JSON.parse(localStorage.getItem("java-ai-lab.progress.v1")).chapters["java-core"].done'));
   await goto('#/diagnostics');
   check('diagnostics page renders', await evalJs('document.body.innerText.includes("本机环境诊断")'));
+  await goto('#/cloud');
+  check('cloud page defaults to local mode', await evalJs('document.querySelector("#cloudStatus").textContent.includes("未配置")'));
+  await evalJs('(function(){document.querySelector("#cloudUrl").value="https://example.supabase.co";document.querySelector("#cloudKey").value="sb_secret_do_not_save";document.querySelector("[data-cloud-config]").click()})()');
+  await sleep(100);
+  check('cloud rejects secret keys', await evalJs('document.querySelector("#cloudStatus").textContent.includes("不要填写 secret") && !localStorage.getItem("java-ai-lab.cloud-config.v1")'));
 
   // Token lab
   await goto('#/lab/token');

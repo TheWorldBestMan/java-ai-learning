@@ -811,3 +811,4 @@ td strong { color: var(--text); }
 .chapter-toc li { margin: .45em 0; }
 .lesson-h2[id], .lesson-h3[id] { scroll-margin-top: 90px; }
 .back-top { position: fixed; right: 16px; bottom: 16px; z-index: 10; }
+.cloud-input { display: block; width: 100%; margin: 6px 0 14px; padding: 10px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }

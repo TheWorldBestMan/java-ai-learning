@@ -5,7 +5,14 @@
   "description": "从 Java 零基础到可上线 RAG 工程师的交互式学习站",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/content.test.js && node tests/progress.test.js",
+    "build:sync": "esbuild src/cloud-entry.js --bundle --platform=browser --format=iife --target=es2020 --minify --outfile=assets/cloud-sync.bundle.js",
+    "test": "node tests/content.test.js && node tests/progress.test.js && node tests/sync-merge.test.js && node tests/cloud-sync.test.js",
     "test:browser": "node tests/browser.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }
