@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/course
+    username: course
+    password: course-local-only
+  jpa:
+    hibernate:
+      ddl-auto: update
