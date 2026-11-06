@@ -157,6 +157,7 @@ async function main() {
   await goto('#/chapter/env');
   check('chapter page', (await evalJs('!!document.querySelector(".chapter-header h1")')));
   check('quiz options', (await evalJs('document.querySelectorAll(".quiz-opt").length')) === 8);
+  check('unverified local runner is disabled', await evalJs('!!document.querySelector("button[aria-describedby=javaRunInfo][disabled]") && document.querySelector("#javaRunInfo").textContent.includes("尚未完成")'));
   await evalJs('(function(){var ch=window.CHAPTERS.find(function(c){return c.id==="env";});ch.quiz.forEach(function(q,i){var b=document.querySelector("[data-quiz=\\""+i+"\\"][data-opt=\\""+q.answer+"\\"]");if(b)b.click();});})()');
   await sleep(300);
   check('quiz score 2/2', (await evalJs('document.querySelector("#quizScore").textContent')).indexOf('2 / 2') >= 0);

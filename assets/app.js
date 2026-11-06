@@ -735,10 +735,12 @@
     html.push('<textarea class="editor" id="exEditor" spellcheck="false" aria-label="练习代码">' + esc(code) + '</textarea>');
     html.push('<div class="exercise-actions">');
     html.push('<button class="btn primary sm" data-ex-check="1" type="button">检查关键点</button>');
+    if (ex.lang === 'java') html.push('<button class="btn sm" type="button" disabled aria-describedby="javaRunInfo">本机运行（暂未开放）</button>');
     html.push('<button class="btn sm" data-ex-hint="1" type="button">给我一个提示</button>');
     html.push('<button class="btn ghost sm" data-ex-solution="1" type="button">查看参考答案</button>');
     html.push('<span class="spacer"></span><span class="tiny faint">自动保存</span>');
     html.push('</div>');
+    if (ex.lang === 'java') html.push('<p id="javaRunInfo" class="tiny muted">网页内隔离执行尚未完成。你可以下载对应的示例项目，在自己电脑上用 Maven 运行测试；如需检查 Docker，请打开<a href="#/diagnostics">环境诊断</a>。</p>');
     html.push('<div class="check-list" id="exChecks">');
     if (passed && rec.checks) {
       rec.checks.forEach(function (c) {
