@@ -4,7 +4,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 root = Path(__file__).parent
 out = root / 'downloads'
 out.mkdir(exist_ok=True)
-for name in ('environment-check', 'spring-greeting', 'database-notes', 'api-validation', 'spring-ai-mock', 'vector-search-mock', 'rag-mock'):
+for name in ('environment-check', 'spring-greeting', 'database-notes', 'api-validation', 'spring-ai-mock', 'vector-search-mock', 'rag-mock', 'java-core-practice'):
     project = root / name
     with ZipFile(out / (name + '.zip'), 'w', ZIP_DEFLATED) as archive:
         for f in sorted(project.rglob('*')):

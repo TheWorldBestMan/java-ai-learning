@@ -21,7 +21,7 @@ const errors = [];
 const ids = new Set();
 const fs = require('fs');
 const path = require('path');
-['environment-check', 'spring-greeting', 'database-notes', 'api-validation', 'spring-ai-mock', 'vector-search-mock', 'rag-mock'].forEach(name => {
+['environment-check', 'spring-greeting', 'database-notes', 'api-validation', 'spring-ai-mock', 'vector-search-mock', 'rag-mock', 'java-core-practice'].forEach(name => {
   if (!fs.existsSync(path.join(__dirname, '..', 'examples', 'downloads', name + '.zip'))) errors.push('missing example download ' + name);
 });
 

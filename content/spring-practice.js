@@ -58,6 +58,7 @@
   };
   (window.CHAPTERS || []).forEach(function (chapter) {
     var c = cases[chapter.id];
+    if (chapter.id === 'java-core') chapter.sections.splice(6, 0, { type: 'callout', tone: 'tip', title: '本机练习与自动测试', html: '<a href="examples/downloads/java-core-practice.zip" download>下载 ChunkStats 练习项目（ZIP）</a>。解压后可编辑代码，用 Maven Wrapper 在自己电脑运行测试；网页本身不执行代码。' });
     if (!c) return;
     var blocks = [{ type: 'callout', tone: 'tip', title: '下载本章独立案例', html: '<a href="examples/downloads/' + c.file + '.zip" download>下载「' + c.name + '」完整项目（ZIP）</a>。解压后阅读 README；首次构建需要网络。' }].concat(c.blocks);
     Array.prototype.splice.apply(chapter.sections, [6, 0].concat(blocks));

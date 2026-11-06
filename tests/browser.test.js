@@ -188,6 +188,8 @@ async function main() {
   check('editing invalidates old exercise check', await evalJs('document.querySelector("#exTag").textContent.includes("待重新检查") && document.querySelectorAll("#exChecks .pass").length===0'));
   await evalJs('(function(){var e=document.querySelector("#exEditor");e.value=window.CHAPTERS.find(function(c){return c.id==="env"}).exercise.solution;e.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("[data-ex-check]").click()})()');
   check('exercise can be rechecked', await evalJs('document.querySelectorAll("#exChecks .pass").length===5'));
+  await goto('#/chapter/java-core');
+  check('java practice download available', await evalJs('fetch("examples/downloads/java-core-practice.zip").then(function(r){return r.ok && r.headers.get("content-length") > 1000;})'));
   await goto('#/chapter/spring-ai');
   check('spring ai walkthrough and version note', await evalJs('document.body.innerText.includes("从已有 Spring 项目接到一次模型响应") && document.body.innerText.includes("Chat 与 Embedding 可以是不同服务")'));
   await goto('#/chapter/rag-eval');
