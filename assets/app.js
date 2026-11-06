@@ -335,15 +335,19 @@
   /* ---------------- 搜索 ---------------- */
   var searchIndex = [];
 
+  function sectionText(section) {
+    var text = [section.text || '', stripHtml(section.html || ''), section.code || '', section.title || ''];
+    (section.items || []).forEach(function (item) { text.push(typeof item === 'string' ? stripHtml(item) : [item.title || '', stripHtml(item.detail || ''), item.sub || ''].join(' ')); });
+    (section.rows || []).forEach(function (row) { text.push(row.map(stripHtml).join(' ')); });
+    return text.join(' ');
+  }
+
   function buildSearchIndex() {
     searchIndex = [];
     CHAPTERS.forEach(function (ch) {
       var text = [ch.title, ch.summary, (ch.tags || []).join(' '), (ch.objectives || []).join(' ')].join(' ');
       (ch.sections || []).forEach(function (s) {
-        if (s.text) text += ' ' + stripHtml(s.text);
-        if (s.html) text += ' ' + stripHtml(s.html);
-        if (s.items) text += ' ' + s.items.map(function (x) { return stripHtml(x); }).join(' ');
-        if (s.code) text += ' ' + s.code;
+        text += ' ' + sectionText(s);
       });
       (ch.quiz || []).forEach(function (q) { text += ' ' + q.q + ' ' + (q.options || []).join(' '); });
       searchIndex.push({
@@ -357,7 +361,7 @@
       (ch.sections || []).forEach(function (section, index) {
         if (section.type === 'h' || section.type === 'h3') { heading = section.text; headingIndex = index; }
         if (headingIndex === null) return;
-        var content = [section.text || '', stripHtml(section.html || ''), section.code || ''].join(' ');
+        var content = sectionText(section);
         if (!content.trim()) return;
         searchIndex.push({ type: '章节内容', title: heading, meta: ch.title, href: '#/chapter/' + ch.id + '/s' + headingIndex, text: content.toLowerCase() });
       });

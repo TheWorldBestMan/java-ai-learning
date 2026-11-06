@@ -1,0 +1,11 @@
+{
+  "name": "java-ai-engineering-course",
+  "version": "1.0.0",
+  "private": true,
+  "description": "从 Java 零基础到可上线 RAG 工程师的交互式学习站",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/content.test.js && node tests/progress.test.js",
+    "test:browser": "node tests/browser.test.js"
+  }
+}
